@@ -1,0 +1,757 @@
+[
+    {
+        "id": "9272213cf3bb923e",
+        "type": "tab",
+        "label": "Pipeline CABN",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "3b07af869e5db916",
+        "type": "inject",
+        "z": "9272213cf3bb923e",
+        "name": "🧪 TEST MANUAL — Pegar URL del Post aquí",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "https://www.instagram.com/p/DdjttBARRwf/",
+        "payloadType": "str",
+        "x": 200,
+        "y": 60,
+        "wires": [
+            [
+                "4223cef88536f437"
+            ]
+        ]
+    },
+    {
+        "id": "87544e6308dd3a64",
+        "type": "inject",
+        "z": "9272213cf3bb923e",
+        "name": "🔄 RESET memoria posts",
+        "props": [
+            {
+                "p": "payload",
+                "v": "true",
+                "vt": "bool"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 200,
+        "y": 120,
+        "wires": [
+            [
+                "28e3b3b1646338ad"
+            ]
+        ]
+    },
+    {
+        "id": "0feb5a03818d123b",
+        "type": "inject",
+        "z": "9272213cf3bb923e",
+        "name": "🧹 Quitar post puntual (DeInH-juGXu)",
+        "props": [
+            {
+                "p": "payload",
+                "v": "DeInH-juGXu",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 210,
+        "y": 170,
+        "wires": [
+            [
+                "28e3b3b1646338ad"
+            ]
+        ]
+    },
+    {
+        "id": "28e3b3b1646338ad",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Limpiar posts procesados",
+        "func": "let valor = String(msg.payload || \"\").trim();\nlet match = valor.match(/\\/p\\/([^\\/]+)/);\nlet targetId = match ? match[1] : (valor && valor !== \"true\" && valor !== \"all\" ? valor : null);\n\nlet procesados = global.get(\"posts_procesados\") || [];\n\nif (targetId) {\n  let antes = procesados.length;\n  let filtrados = procesados.filter(id => id !== targetId);\n  global.set(\"posts_procesados\", filtrados);\n  node.warn(\"🧹 Post eliminado de memoria: \" + targetId + \" (antes: \" + antes + \", ahora: \" + filtrados.length + \")\");\n} else {\n  global.set(\"posts_procesados\", []);\n  node.warn(\"🔄 Memoria reseteada completamente. Posts procesados: 0\");\n}\n\nreturn msg;",
+        "outputs": 1,
+        "x": 440,
+        "y": 120,
+        "wires": [
+            [
+                "f80dc19e183f8773"
+            ]
+        ]
+    },
+    {
+        "id": "f80dc19e183f8773",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "Reset OK",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "x": 640,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "4223cef88536f437",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Armar request Apify (Manual)",
+        "func": "const APIFY_TOKEN = \"apify_api_9WmTdXVQJgFLeh68xTnPKvLxIApaYL3DR3BC\";\nconst postUrl = String(msg.payload).trim();\n\nif (!postUrl.includes(\"instagram.com/p/\")) {\n    node.error(\"La URL debe ser de una publicación de Instagram (ej: /p/XXXXX/)\");\n    return null;\n}\n\n// Limpiar este post puntual de YA PROCESADOS para que el test manual siempre lo analice\nconst match = postUrl.match(/\\/p\\/([^\\/]+)/);\nif (match && match[1]) {\n  const shortCode = match[1];\n  let procesados = global.get(\"posts_procesados\") || [];\n  global.set(\"posts_procesados\", procesados.filter(id => id !== shortCode));\n  node.warn(\"🧹 Post \" + shortCode + \" liberado de memoria para test manual.\");\n}\n\nmsg.url = \"https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=\" + APIFY_TOKEN + \"&timeout=120\";\nmsg.payload = {\n  directUrls: [postUrl],\n  resultsType: \"posts\",\n  resultsLimit: 1\n};\nmsg.headers = { \"Content-Type\": \"application/json\" };\n\nnode.log(\"Ejecutando extracción de post manual...\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 410,
+        "y": 60,
+        "wires": [
+            [
+                "268dba6dedc44d76"
+            ]
+        ]
+    },
+    {
+        "id": "eeaedffa95d9dac5",
+        "type": "inject",
+        "z": "9272213cf3bb923e",
+        "name": "📅 Fin de semana (14:00 a 18:00 hs Arg - cada 60m)",
+        "props": [],
+        "repeat": "",
+        "crontab": "0 17-21 * * 6,0",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 160,
+        "y": 240,
+        "wires": [
+            [
+                "22502f3f5bd518bd"
+            ]
+        ]
+    },
+    {
+        "id": "22502f3f5bd518bd",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Gate Finde",
+        "func": "const dia = new Date().getDay();\nif (dia !== 0 && dia !== 6) { \n  node.log(\"No es fin de semana.\"); \n  return null; \n}\nnode.log(\"✅ Fin de semana (14:00 a 18:00 hs Argentina) — activando pipeline\");\nreturn msg;",
+        "outputs": 1,
+        "x": 380,
+        "y": 240,
+        "wires": [
+            [
+                "4ea77636a6c14907"
+            ]
+        ]
+    },
+    {
+        "id": "33076653df3b5826",
+        "type": "inject",
+        "z": "9272213cf3bb923e",
+        "name": "📅 Entre semana (20:00 hs Argentina)",
+        "props": [],
+        "repeat": "",
+        "crontab": "00 23 * * 1,2,3,4,5",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 160,
+        "y": 320,
+        "wires": [
+            [
+                "b3338335ea9bbd4b"
+            ]
+        ]
+    },
+    {
+        "id": "b3338335ea9bbd4b",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Gate Semana",
+        "func": "const dia = new Date().getDay();\nif (dia === 0 || dia === 6) { \n  node.log(\"Es fin de semana — ignorar trigger semanal.\"); \n  return null; \n}\nnode.log(\"✅ Entre semana (20:00 hs Argentina) — activando pipeline\");\nreturn msg;",
+        "outputs": 1,
+        "x": 380,
+        "y": 320,
+        "wires": [
+            [
+                "4ea77636a6c14907"
+            ]
+        ]
+    },
+    {
+        "id": "4ea77636a6c14907",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Armar request Apify",
+        "func": "const APIFY_TOKEN = \"apify_api_9WmTdXVQJgFLeh68xTnPKvLxIApaYL3DR3BC\";\n\nconst PERFILES = [\n  \"https://www.instagram.com/entretiempo_gualeguay/\",\n  \"https://www.instagram.com/entretiempo_gualeguay.fem/\",\n  \"https://www.instagram.com/entretiempo_inferiores/\",\n  \"https://www.instagram.com/ligafutbolgualeguay/\",\n  \"https://www.instagram.com/barrionortegualeguay/\",\n];\n\nmsg.apify_token = APIFY_TOKEN;\nmsg.url = \"https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items?token=\" + APIFY_TOKEN + \"&timeout=120\";\nmsg.payload = {\n  directUrls:   PERFILES,\n  resultsType:  \"posts\",\n  resultsLimit: 5,\n};\nmsg.headers = { \"Content-Type\": \"application/json\" };\nnode.log(\"Iniciando Apify para \" + PERFILES.length + \" perfiles...\");\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 280,
+        "wires": [
+            [
+                "268dba6dedc44d76"
+            ]
+        ]
+    },
+    {
+        "id": "268dba6dedc44d76",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "Apify Instagram Sync",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 800,
+        "y": 280,
+        "wires": [
+            [
+                "4343c4ed3f52fede",
+                "14a7771887e33f6e"
+            ]
+        ]
+    },
+    {
+        "id": "4343c4ed3f52fede",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "👁 Respuesta cruda Apify",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "x": 800,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "14a7771887e33f6e",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Filtrar posts nuevos + extraer imágenes",
+        "func": "const posts = Array.isArray(msg.payload) ? msg.payload : [];\nnode.warn(\"=== PRIMER POST RAW ===\");\nnode.warn(JSON.stringify({\n  shortCode:     posts[0] && posts[0].shortCode,\n  ownerUsername: posts[0] && posts[0].ownerUsername,\n  timestamp:     posts[0] && posts[0].timestamp,\n  displayUrl:    posts[0] && (posts[0].displayUrl || \"\").substring(0, 60),\n  caption:       posts[0] && (posts[0].caption || posts[0].captionText || \"\").substring(0, 80),\n}));\n\nnode.warn(\"TODOS LOS POSTS: \" + posts.map(function(p) {\n  return (p.ownerUsername || p.username || \"?\") + \"/\" + (p.shortCode || p.id || \"?\");\n}).join(\", \"));\n\nnode.warn(\"YA PROCESADOS: \" + JSON.stringify(global.get(\"posts_procesados\") || []));\nif (posts.length === 0) { node.warn(\"Apify no devolvió posts.\"); return null; }\n\nnode.log(\"Apify: \" + posts.length + \" posts totales.\");\n\nlet procesados = global.get(\"posts_procesados\") || [];\nconst setProcesados = new Set(procesados);\nconst ahora  = Date.now();\nconst limite = ahora - (48 * 60 * 60 * 1000); // Ventana de 48 hs\n\nconst postsNuevos = posts.filter(function(post) {\n  const id = post.shortCode || post.id || post.url;\n  if (!id || setProcesados.has(id)) return false;\n  if (post.timestamp) {\n    const fechaPost = new Date(post.timestamp).getTime();\n    if (fechaPost < limite) { node.log(\"Post viejo ignorado: \" + id); return false; }\n  }\n  return true;\n});\n\nif (postsNuevos.length === 0) { node.log(\"Sin posts nuevos.\"); return null; }\nnode.log(postsNuevos.length + \" posts nuevos detectados.\");\n\n// NOTA: Se guardará en memoria solo al confirmar éxito en DB o descarte por IA.\n\nconst mensajes = [];\n\npostsNuevos.forEach(function(post) {\n  const shortCode = post.shortCode || post.id || \"\";\n\n  const caption = String(\n    post.caption || post.captionText || post.text || post.description || \"\"\n  ).trim().substring(0, 800);\n\n  const imagenesDelPost = [];\n  if (post.displayUrl) imagenesDelPost.push(post.displayUrl);\n\n  const fuentes = [post.images, post.childPosts, post.sidecarImages];\n  fuentes.forEach(function(fuente) {\n    if (!Array.isArray(fuente)) return;\n    fuente.forEach(function(item) {\n      let url = null;\n      if (typeof item === \"string\")     url = item;\n      else if (item && item.displayUrl) url = item.displayUrl;\n      else if (item && item.url)        url = item.url;\n      else if (item && item.src)        url = item.src;\n      if (url && !imagenesDelPost.includes(url)) imagenesDelPost.push(url);\n    });\n  });\n\n  node.log(\"Post \" + shortCode + \": \" + imagenesDelPost.length + \" imagen(es) | caption: \" + caption.substring(0,40));\n\n  imagenesDelPost.forEach(function(imageUrl, idx) {\n    mensajes.push({\n      payload:       { image_url: imageUrl },\n      image_url:     imageUrl,\n      url:           imageUrl,\n      post_id:       shortCode,\n      post_fecha:    post.timestamp || \"\",\n      post_url:      post.url || (shortCode ? \"https://www.instagram.com/p/\" + shortCode + \"/\" : \"\"),\n      cuenta_origen: post.ownerUsername || post.username || \"\",\n      caption:       idx === 0 ? caption : \"\",\n    });\n  });\n});\n\nnode.log(\"Imágenes a analizar: \" + mensajes.length);\nreturn [mensajes];",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1040,
+        "y": 280,
+        "wires": [
+            [
+                "6ff97672c4105f2a"
+            ]
+        ]
+    },
+    {
+        "id": "6ff97672c4105f2a",
+        "type": "delay",
+        "z": "9272213cf3bb923e",
+        "name": "Respetar límite Gemini (1 cada 5s)",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "5",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "3",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": false,
+        "outputs": 1,
+        "x": 1290,
+        "y": 280,
+        "wires": [
+            [
+                "1799cdf284c947f6"
+            ]
+        ]
+    },
+    {
+        "id": "8d375274a6c079ea",
+        "type": "http in",
+        "z": "9272213cf3bb923e",
+        "name": "Webhook Apify",
+        "url": "/apify-hook",
+        "method": "post",
+        "upload": false,
+        "x": 160,
+        "y": 420,
+        "wires": [
+            [
+                "1799cdf284c947f6"
+            ]
+        ]
+    },
+    {
+        "id": "1799cdf284c947f6",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Extraer URL",
+        "func": "const p = msg.payload || {};\nconst imageUrl =\n  p.image_url || p.imageUrl || p.url ||\n  (p.media && p.media[0] && p.media[0].url) || \"\";\n\nif (!imageUrl) {\n  node.error(\"No se encontró image_url en el payload\", msg);\n  return null;\n}\n\nmsg.image_url = imageUrl;\nmsg.url       = imageUrl;\nmsg.payload   = { image_url: imageUrl };\n\n// Preservar cuenta_origen y post_url si vienen del flujo Apify\nif (!msg.cuenta_origen) msg.cuenta_origen = \"\";\nif (!msg.post_url)      msg.post_url = \"\";\nif (!msg.post_id)       msg.post_id = \"\";\n\nnode.log(\"URL: \" + imageUrl.substring(0, 80));\nreturn msg;",
+        "outputs": 1,
+        "x": 390,
+        "y": 420,
+        "wires": [
+            [
+                "2c4586a664da83e4",
+                "95c95c319eeae37e"
+            ]
+        ]
+    },
+    {
+        "id": "95c95c319eeae37e",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "👁 Ver URL extraída",
+        "active": true,
+        "tosidebar": true,
+        "complete": "image_url",
+        "x": 390,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "2c4586a664da83e4",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "Descargar Imagen",
+        "method": "GET",
+        "ret": "bin",
+        "paytoqs": "ignore",
+        "url": "{{{url}}}",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 590,
+        "y": 420,
+        "wires": [
+            [
+                "4defd1d93f6ca095"
+            ]
+        ]
+    },
+    {
+        "id": "4defd1d93f6ca095",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Convertir a base64",
+        "func": "const buffer = msg.payload;\n\nif (msg.statusCode && msg.statusCode !== 200) {\n    node.error(\"❌ Error descargando imagen: HTTP \" + msg.statusCode + \". La URL probablemente expiró (Instagram cambia los links cada 24hs).\");\n    return null;\n}\n\nif (!Buffer.isBuffer(buffer)) {\n  node.error(\"Imagen no llegó como buffer.\");\n  return null;\n}\n\nif (buffer.length < 1000) {\n  node.warn(\"Buffer muy pequeño (\" + buffer.length + \" bytes) — URL expirada o bloqueada\");\n  return null;\n}\n\nconst url = String(msg.url || msg.image_url || \"\").toLowerCase();\nlet mimeType = \"image/jpeg\";\nif (url.includes(\".png\"))  mimeType = \"image/png\";\nif (url.includes(\".webp\")) mimeType = \"image/webp\";\nif (url.includes(\".gif\"))  mimeType = \"image/gif\";\n\nmsg.image_base64 = buffer.toString(\"base64\");\nmsg.image_mime   = mimeType;\n\nnode.log(\"✅ Imagen descargada: \" + mimeType + \" — \" + Math.round(buffer.length / 1024) + \" KB\");\nreturn msg;",
+        "outputs": 1,
+        "x": 790,
+        "y": 420,
+        "wires": [
+            [
+                "69017225811954a0"
+            ]
+        ]
+    },
+    {
+        "id": "69017225811954a0",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Armar request Gemini",
+        "func": "const cuenta = String(msg.cuenta_origen || \"\").toLowerCase();\nconst caption = String(msg.caption || \"\").trim();\n\nconst PROMPT = `Sos el sistema inteligente de contenidos y estadísticas del Club Atlético Barrio Norte (Liga Departamental de Fútbol de Gualeguay y disciplinas deportivas del club).\n\nAnalizá con precisión la imagen y el texto de la publicación para clasificarla en UNO de los siguientes 3 casos. Respondé ÚNICAMENTE con JSON válido:\n{ \"tipo_contenido\": \"noticia\" | \"resultado\" | \"descartar\", \"datos\": { ... } }\n\n━━━ CASO 1: NOTICIA DEL CLUB (tipo_contenido = \"noticia\") ━━━\nAplica si la imagen/publicación trata de una actividad, logro o novedad del CLUB ATLÉTICO BARRIO NORTE (escudo CABN, camiseta albirroja/roja y blanca, mención expresa al club, sus deportistas, directivos o hinchas).\nAbarca tanto fútbol como TODAS sus disciplinas deportivas y culturales:\n- \"Ciclismo\" (carreras, podios, circuito, ciclistas del club como Milagros Sanabria)\n- \"Bochas\" (torneos de bochas, parejas, tríos)\n- \"Tenis\" (torneos, dobles, singles, escuelita)\n- \"Billar\" (5 quillas, casín)\n- \"Gimnasia\" (gimnasia rítmica, presentaciones)\n- \"Fútbol\" (Primera División masculina del club)\n- \"Femenino\" (Fútbol femenino del club)\n- \"Inferiores\" (sub-13 a sub-17 del club)\n- \"Infantiles\" (formativas y escuelita del club)\n- \"Samba Verá\" (comparsa, batucada, carnaval del club)\n- \"Institucional\" (sede, socios, obras, aniversarios)\n\nRedacción: Estilo periodístico argentino, natural, conciso y cercano al hincha (\"el Norte\", \"el Norteño\", \"el finde\"). Prohibido lenguaje neutro (\"balompié\", \"zaga\", \"guardameta\").\nFormato datos:\n{\n  \"titulo\": \"Título periodístico directo (máx 8 palabras)\",\n  \"resumen\": \"Resumen conciso y claro de lo ocurrido (máximo 2 oraciones).\",\n  \"categoria\": \"[Ciclismo|Bochas|Tenis|Billar|Gimnasia|Fútbol|Femenino|Inferiores|Infantiles|Samba Verá|Institucional]\",\n  \"tags\": [\"Ciclismo\", \"Norteños\", \"Gualeguay\"]\n}\n\n━━━ CASO 2: RESULTADOS DE PARTIDOS DE LA LIGA (tipo_contenido = \"resultado\") ━━━\nAplica si la imagen muestra MARCADORES O RESULTADOS DE PARTIDOS jugados en la Liga Departamental de Fútbol de Gualeguay.\nIMPORTANTE: Procesá TODOS los partidos que figuren en la imagen, INCLUSO SI NO JUEGA BARRIO NORTE (para poder armar y actualizar tablas de posiciones y llaves de playoffs de toda la liga).\nCategorías posibles: \"Primera Masculina\", \"Primera Femenina\", \"Tercera\", \"Cuarta\", \"Quinta\", \"Sexta\", \"Séptima\".\nFases posibles:\n- \"Fase Regular\" (indicar round_number si dice 'Fecha 1', 'Fecha 8', etc.)\n- \"Semifinales Ida\", \"Semifinales Vuelta\", \"Final Ida\", \"Final Vuelta\"\n- \"Repechaje\", \"Petit Torneo\"\nNombres de equipos normalizados: Usar nombres oficiales (\"Barrio Norte\", \"Bancario\", \"Juventud\", \"Sportiva\", \"Gualeguay Central\", \"El Progreso\", \"La Academia\", \"Urquiza\", \"Centro Bancario\", \"Quilmes\").\nFormato datos:\n{\n  \"torneo\": \"Torneo Oficial 2026\",\n  \"categoria\": \"Primera Masculina\",\n  \"fase\": \"Fase Regular\",\n  \"round_number\": 8,\n  \"partidos\": [\n    {\n      \"local\": { \"equipo\": \"Barrio Norte\", \"goles\": 2 },\n      \"visitante\": { \"equipo\": \"Bancario\", \"goles\": 1 }\n    }\n  ]\n}\n(Si los goles de algún partido aún no se jugaron o no aparecen, poner \"goles\": null).\n\n━━━ CASO 3: DESCARTAR (tipo_contenido = \"descartar\") ━━━\nAplica en cualquiera de estos casos:\n- TABLAS DE POSICIONES PURAS (tablas con puntos, PJ, PG, PE, PP, etc., ya que nuestro sistema las calcula matemáticamente a partir de los partidos).\n- Publicidades comerciales ajenas sin relación al club.\n- Publicaciones exclusivas de clubes rivales que no sean marcadores de partidos de la liga.\n- Memes o imágenes sin información noticiable ni deportiva.\nFormato datos:\n{\n  \"motivo\": \"Explicación breve del descarte\"\n}`;\n\nmsg.gemini_intentos = msg.gemini_intentos || 1;\nmsg.gemini_modelo = \"gemini-3.1-flash-lite\";\nconst API_KEY = \"AIzaSyAMYKaj8_lLSpYGX-LnWQlmj7HDCiEyTYo\";\nmsg.url = `https://generativelanguage.googleapis.com/v1beta/models/${msg.gemini_modelo}:generateContent?key=${API_KEY}`;\n\nmsg.payload = {\n  contents: [{\n    parts: [\n      { inlineData: { mimeType: msg.image_mime || \"image/jpeg\", data: msg.image_base64 } },\n      { text: PROMPT + \"\\n\\nCUENTA ORIGEN: \" + cuenta + \"\\nTEXTO DE LA PUBLICACIÓN:\\n\" + caption }\n    ]\n  }],\n  generationConfig: { temperature: 0.1, response_mime_type: \"application/json\", maxOutputTokens: 1024 }\n};\n\nnode.log(\"📤 Preparando Gemini (Modelo: \" + msg.gemini_modelo + \" - Intento \" + msg.gemini_intentos + \") | cuenta: \" + cuenta);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1000,
+        "y": 420,
+        "wires": [
+            [
+                "aaeea46b27f102a8"
+            ]
+        ]
+    },
+    {
+        "id": "aaeea46b27f102a8",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "Gemini API",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [
+            {
+                "keyType": "other",
+                "keyValue": "content-type",
+                "valueType": "other",
+                "valueValue": "application/json"
+            }
+        ],
+        "x": 1210,
+        "y": 420,
+        "wires": [
+            [
+                "79abda3a7b572298",
+                "0dff8d3f98eb6f1a"
+            ]
+        ]
+    },
+    {
+        "id": "79abda3a7b572298",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "👁 Respuesta cruda Gemini",
+        "active": true,
+        "tosidebar": true,
+        "complete": "payload",
+        "x": 1210,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "0dff8d3f98eb6f1a",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Evaluar Gemini & Redundancia",
+        "func": "const payload = msg.payload || {};\nconst statusCode = msg.statusCode || 200;\nconst errorCode = (payload.error && payload.error.code) || (statusCode >= 400 ? statusCode : null);\n\n// 1. Éxito: tiene candidates válidos\nif (!errorCode && payload.candidates && payload.candidates.length > 0) {\n  node.log(\"✅ Gemini respondió OK con modelo: \" + (msg.gemini_modelo || \"gemini-3.1-flash-lite\"));\n  return [msg, null]; // Salida 1: Continúa a Parsear respuesta\n}\n\n// 2. Error (503 alta demanda, 429 cuota momentánea, etc.)\nconst intentos = msg.gemini_intentos || 1;\nconst errorMsg = (payload.error && payload.error.message) || (\"HTTP \" + statusCode);\nnode.warn(`⚠️ Error en ${msg.gemini_modelo || \"Gemini\"} (Intento ${intentos}): ${errorMsg}`);\n\nconst API_KEY = \"AIzaSyAMYKaj8_lLSpYGX-LnWQlmj7HDCiEyTYo\";\n\n// Intento 1 falló -> Reintentar con el MISMO gemini-3.1-flash-lite tras pausa de 12s\nif (intentos === 1) {\n  node.warn(\"⏳ Reintento 1: Pausa de 12 segundos para superar pico de demanda en 3.1 Flash Lite...\");\n  msg.gemini_intentos = 2;\n  msg.delay = 12000;\n  msg.url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`;\n  return [null, msg]; // Salida 2: al delay y vuelve a Gemini\n}\n\n// Intento 2 falló -> Segundo reintento con pausa de 15s adicional\nif (intentos === 2) {\n  node.warn(\"⏳ Reintento 2: Pausa de 15 segundos adicional en 3.1 Flash Lite...\");\n  msg.gemini_intentos = 3;\n  msg.delay = 15000;\n  msg.url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`;\n  return [null, msg]; // Salida 2: al delay y vuelve a Gemini\n}\n\n// Si fallaron los 3 intentos:\nnode.error(\"❌ Fallaron los reintentos temporales de Gemini. El post NO se quema para reintentarlo en el siguiente ciclo.\");\nreturn [null, null];",
+        "outputs": 2,
+        "x": 1330,
+        "y": 380,
+        "wires": [
+            [
+                "87ce112c81c8e28a"
+            ],
+            [
+                "700e859053e92cfd"
+            ]
+        ]
+    },
+    {
+        "id": "700e859053e92cfd",
+        "type": "delay",
+        "z": "9272213cf3bb923e",
+        "name": "Pausa Reintento (12s)",
+        "pauseType": "delayv",
+        "timeout": "12",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "outputs": 1,
+        "x": 1210,
+        "y": 340,
+        "wires": [
+            [
+                "aaeea46b27f102a8"
+            ]
+        ]
+    },
+    {
+        "id": "87ce112c81c8e28a",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Parsear respuesta Gemini",
+        "func": "try {\n  const payload   = msg.payload || {};\n  const errorCode = payload.error && payload.error.code;\n\n  if (errorCode) {\n    throw new Error(\"Error Gemini \" + errorCode + \": \" + (payload.error.message || \"\").substring(0, 120));\n  }\n\n  const candidates = payload.candidates;\n  if (!candidates || !candidates[0]) {\n    throw new Error(\"Sin candidates en respuesta de Gemini\");\n  }\n\n  let texto = candidates[0].content.parts[0].text || \"\";\n\n  // Log para diagnóstico\n  node.warn(\"GEMINI RAW: \" + texto.substring(0, 300));\n\n  texto = texto.replace(/```json\\s*/gi, \"\").replace(/```\\s*/g, \"\").trim();\n\n  const parsed = JSON.parse(texto);\n\n  msg.tipo_contenido = parsed.tipo_contenido || \"descartar\";\n  msg.datos          = parsed.datos || {};\n\n  // Si datos está vacío Y tipo no es descartar → problema real, loguear\n  if (Object.keys(msg.datos).length === 0) {\n    if (msg.tipo_contenido !== \"descartar\") {\n      node.warn(\"Gemini devolvió datos vacíos para tipo: \" + msg.tipo_contenido + \" — forzando descartar\");\n      msg.tipo_contenido = \"descartar\";\n    }\n    msg.datos = { motivo: \"Sin datos\" };\n  }\n\n  node.log(\"✅ Tipo: \" + msg.tipo_contenido +\n    (msg.datos.categoria ? \" | Cat: \" + msg.datos.categoria : \"\") +\n    (msg.datos.partidos  ? \" | Partidos: \" + msg.datos.partidos.length : \"\"));\n\n} catch(e) {\n  node.error(\"❌ \" + e.message);\n  msg.tipo_contenido = \"descartar\";\n  msg.datos = { motivo: e.message.substring(0, 100) };\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1430,
+        "y": 420,
+        "wires": [
+            [
+                "c0ca177449926361"
+            ]
+        ]
+    },
+    {
+        "id": "c0ca177449926361",
+        "type": "switch",
+        "z": "9272213cf3bb923e",
+        "name": "Router contenido",
+        "property": "tipo_contenido",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "noticia",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "resultado",
+                "vt": "str"
+            },
+            {
+                "t": "else"
+            }
+        ],
+        "checkall": "false",
+        "repair": false,
+        "outputs": 3,
+        "x": 1640,
+        "y": 420,
+        "wires": [
+            [
+                "08da17dbf545d263"
+            ],
+            [
+                "68bced8445de196a"
+            ],
+            [
+                "8fc504e49635de06"
+            ]
+        ]
+    },
+    {
+        "id": "08da17dbf545d263",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Preparar Upload Cloudinary",
+        "func": "const imageUrl = msg.image_url || \"\";\nif (!imageUrl) {\n    node.warn(\"No hay imagen para subir a Cloudinary\");\n    return null;\n}\n\n// Guardamos los datos de la noticia para el proximo nodo\nmsg.noticia_datos = msg.datos;\nmsg.noticia_postUrl = msg.post_url;\n\nmsg.url = \"https://api.cloudinary.com/v1_1/dmndohqor/image/upload\";\nmsg.headers = { \"Content-Type\": \"application/json\" };\nmsg.payload = {\n    file: imageUrl,\n    upload_preset: \"noticias_preset\"\n};\nreturn msg;",
+        "outputs": 1,
+        "x": 1860,
+        "y": 360,
+        "wires": [
+            [
+                "393089e0f0bf4f5d"
+            ]
+        ]
+    },
+    {
+        "id": "393089e0f0bf4f5d",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "Upload a Cloudinary",
+        "method": "POST",
+        "ret": "obj",
+        "url": "",
+        "x": 2060,
+        "y": 360,
+        "wires": [
+            [
+                "7fd5efc6f246ab35"
+            ]
+        ]
+    },
+    {
+        "id": "7fd5efc6f246ab35",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Preparar POST a Produccion DB",
+        "func": "const datos = msg.noticia_datos;\nconst postUrl = msg.noticia_postUrl;\nconst cloudinaryUrl = msg.payload.secure_url;\n\nif (!cloudinaryUrl) {\n    node.error(\"Fallo la subida a Cloudinary: \" + JSON.stringify(msg.payload));\n    return null;\n}\n\nmsg.payload = {\n    title: datos.titulo,\n    summary: datos.resumen,\n    category: datos.categoria || \"Fútbol\",\n    tags: Array.isArray(datos.tags) ? datos.tags : [\"Norteños\"],\n    imageUrl: cloudinaryUrl, \n    source: \"Instagram\",\n    sourceUrl: postUrl\n};\n\n// URL de produccion en Netlify\nmsg.url = \"https://clubbarrionorte.netlify.app/api/admin/noticias\";\nconst authCredentials = Buffer.from(\"galgo:25deMayo1223\").toString(\"base64\");\nmsg.headers = {\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Basic \" + authCredentials\n};\n\nnode.log(\"✅ Enviando noticia a la DB en PROD: \" + datos.titulo);\nreturn msg;",
+        "outputs": 1,
+        "x": 2260,
+        "y": 360,
+        "wires": [
+            [
+                "cbb94311a8b19467"
+            ]
+        ]
+    },
+    {
+        "id": "cbb94311a8b19467",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "POST a Prisma DB",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 2480,
+        "y": 360,
+        "wires": [
+            [
+                "da48f6cf6a7f2fe6"
+            ]
+        ]
+    },
+    {
+        "id": "68bced8445de196a",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Preparar POST Partidos",
+        "func": "const datos = msg.datos || {};\n\nif (!datos.partidos || !Array.isArray(datos.partidos) || datos.partidos.length === 0) {\n    node.warn(\"No se detectaron partidos válidos en la imagen.\");\n    return null;\n}\n\n// Lógica de ruteo de TournamentId según categoría\nlet tournamentId = \"oficial-2026\";\nconst cat = String(datos.categoria || \"\").toLowerCase();\nif (cat.includes(\"femenina\") || cat.includes(\"fem\")) {\n    tournamentId = \"oficial-2026-fem\";\n} else if (cat.includes(\"tercera\") || cat.includes(\"3ra\")) {\n    tournamentId = \"tercera-oficial-2026\";\n} else if (cat.includes(\"cuarta\") || cat.includes(\"4ta\")) {\n    tournamentId = \"cuarta-oficial-2026\";\n} else if (cat.includes(\"quinta\") || cat.includes(\"5ta\")) {\n    tournamentId = \"quinta-oficial-2026\";\n} else if (cat.includes(\"sexta\") || cat.includes(\"6ta\")) {\n    tournamentId = \"sexta-oficial-2026\";\n} else if (cat.includes(\"séptima\") || cat.includes(\"septima\") || cat.includes(\"7ma\")) {\n    tournamentId = \"septima-oficial-2026\";\n} else if (cat.includes(\"cat_a\") || cat.includes(\"cat a\")) {\n    tournamentId = \"cat_a-oficial-2026\";\n} else if (cat.includes(\"cat_b\") || cat.includes(\"cat b\")) {\n    tournamentId = \"cat_b-oficial-2026\";\n} else if (cat.includes(\"cat_c\") || cat.includes(\"cat c\")) {\n    tournamentId = \"cat_c-oficial-2026\";\n}\n\n// Lógica de PhaseSlug según la fase\nconst fase = String(datos.fase || \"\").toLowerCase();\nlet phaseSlug = \"fase-regular\";\nif (fase.includes(\"semi\")) {\n    phaseSlug = \"semifinales\";\n} else if (fase.includes(\"petit\")) {\n    phaseSlug = \"petit\";\n} else if (fase.includes(\"final\")) {\n    phaseSlug = \"playoffs\";\n}\n\nlet roundNum = null;\nif (datos.round_number !== null && datos.round_number !== undefined && datos.round_number !== \"\") {\n    const parsed = parseInt(datos.round_number, 10);\n    if (!isNaN(parsed)) roundNum = parsed;\n}\n\nmsg.payload = {\n    tournamentId: tournamentId,\n    phaseSlug: phaseSlug,\n    roundName: datos.fase || (roundNum ? \"Fecha \" + roundNum : \"Fecha\"),\n    roundNumber: roundNum,\n    partidos: datos.partidos\n};\n\n// Endpoint en producción de Netlify\nmsg.url = \"https://clubbarrionorte.netlify.app/api/pipeline/webhook-partidos\";\nconst token = \"barrionorte2027\";\nmsg.headers = {\n    \"Content-Type\": \"application/json\",\n    \"Authorization\": \"Bearer \" + token\n};\n\nnode.log(\"✅ Enviando \" + datos.partidos.length + \" partidos (\" + tournamentId + \" | \" + phaseSlug + \") al webhook de DB\");\nreturn msg;",
+        "outputs": 1,
+        "x": 1860,
+        "y": 480,
+        "wires": [
+            [
+                "eebbf428fec92ccc"
+            ]
+        ]
+    },
+    {
+        "id": "eebbf428fec92ccc",
+        "type": "http request",
+        "z": "9272213cf3bb923e",
+        "name": "POST a DB (Partidos)",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 2080,
+        "y": 480,
+        "wires": [
+            [
+                "8f763220c6b522c0",
+                "da48f6cf6a7f2fe6"
+            ]
+        ]
+    },
+    {
+        "id": "8f763220c6b522c0",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "DB Partidos Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 2320,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "da48f6cf6a7f2fe6",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Marcar éxito en memoria",
+        "func": "if (msg.statusCode && msg.statusCode >= 400) {\n  node.error(\"❌ Error guardando en DB: HTTP \" + msg.statusCode);\n  return null;\n}\nif (msg.post_id) {\n  let procesados = global.get(\"posts_procesados\") || [];\n  if (!procesados.includes(msg.post_id)) {\n    global.set(\"posts_procesados\", procesados.concat([msg.post_id]).slice(-200));\n    node.log(\"💾 Post \" + msg.post_id + \" registrado en YA PROCESADOS tras éxito en DB.\");\n  }\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 2680,
+        "y": 420,
+        "wires": [
+            [
+                "69553c254dcaeef4"
+            ]
+        ]
+    },
+    {
+        "id": "69553c254dcaeef4",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "DB Response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 2880,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "8fc504e49635de06",
+        "type": "function",
+        "z": "9272213cf3bb923e",
+        "name": "Marcar descarte en memoria",
+        "func": "if (msg.post_id) {\n  let procesados = global.get(\"posts_procesados\") || [];\n  if (!procesados.includes(msg.post_id)) {\n    global.set(\"posts_procesados\", procesados.concat([msg.post_id]).slice(-200));\n    node.log(\"🗑 Post \" + msg.post_id + \" registrado en YA PROCESADOS (descartado por IA).\");\n  }\n}\nreturn msg;",
+        "outputs": 1,
+        "x": 1860,
+        "y": 600,
+        "wires": [
+            [
+                "9f6d0bb3cb8de72e"
+            ]
+        ]
+    },
+    {
+        "id": "9f6d0bb3cb8de72e",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "🗑 Descartado",
+        "active": true,
+        "tosidebar": true,
+        "complete": "datos",
+        "x": 2060,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "9e083847ed8ec946",
+        "type": "catch",
+        "z": "9272213cf3bb923e",
+        "name": "Capturar Errores",
+        "scope": null,
+        "uncaught": false,
+        "x": 200,
+        "y": 640,
+        "wires": [
+            [
+                "a7bb6aeb08348e10"
+            ]
+        ]
+    },
+    {
+        "id": "a7bb6aeb08348e10",
+        "type": "debug",
+        "z": "9272213cf3bb923e",
+        "name": "🚨 LOG ERROR CRÍTICO",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 420,
+        "y": 640,
+        "wires": []
+    }
+]
